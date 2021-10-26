@@ -30,6 +30,7 @@ SYNTHETICS_FILENAMES = [
     ]
 
 SYNGINE_MODELS = [
+    'ak135f_1s',
     'ak135f_2s',
     'ak135f_5s',
     'iasp91_2s',
@@ -57,23 +58,23 @@ def resolve_model(name):
     else:
         raise ValueError('Bad model')
 
-
 def download_greens_tensor(url, model, station, origin):
     """ Downloads Green's functions through syngine URL interface
     """
     distance_in_deg = get_distance_in_deg(station, origin)
-
+    from obspy.clients.syngine import Client
+    c = Client()
+    db_info = c.get_model_info(model_name=model)
     url = (url+'/'+'query'
          +'?model='+model
-         +'&dt='+str(station.delta)
+         +'&dt='+ '0.05'#str(db_info.dt) #str(station.delta)
          +'&greensfunction=1'
          +'&sourcedistanceindegrees='+str(distance_in_deg)
          +'&sourcedepthinmeters='+str(int(round(origin.depth_in_m)))
          +'&origintime='+str(origin.time)[:-1]
          +'&starttime='+str(origin.time)[:-1])
-
     try:
-       dirname = os.environs['SYNGINE_DOWNLOADS']
+       dirname = os.environ['SYNGINE_DOWNLOADS']
     except:
        dirname = 'data/greens_tensor/syngine/cache/'
     filename = fullpath(dirname, str(url2uuid(url)))

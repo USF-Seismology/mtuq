@@ -6,6 +6,7 @@ import warnings
 
 from copy import deepcopy
 from obspy import taup
+from obspy import UTCDateTime
 from obspy.geodetics import gps2dist_azimuth
 from os.path import basename, exists
 from mtuq.util import AttribDict, warn
@@ -589,8 +590,15 @@ class ProcessData(object):
 
             # cuts trace and adjusts metadata
             if self.window_type is not None:
-                cut(trace, starttime, endtime)
-
+                try:
+                    cut(trace, starttime, endtime)
+                except Exception as err:
+                    print(str(err))
+                    print(trace.stats.starttime)
+                    print(UTCDateTime(starttime))
+                    print(UTCDateTime(endtime))
+                    print(trace.stats.endtime)
+                    exit(1)
             taper(trace.data)
 
 

@@ -4,6 +4,8 @@
 #
 
 import numpy as np
+from matplotlib import use
+use('Agg')
 import matplotlib.pyplot as pyplot
 import warnings
 

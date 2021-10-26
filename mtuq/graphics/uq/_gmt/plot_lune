@@ -55,8 +55,8 @@ gmt psbasemap $proj_arg $area_arg -Bf10g10/f10g10 -K > $ps
 
 # generate color palette
 cpt_args=$( get_cpt_args $cpt_name $cpt_reverse )
-range_arg="-T${z_min}/${z_max}/${cpt_step}"
-gmt makecpt $cpt_args -D $range_arg > tmp_$out.cpt
+range_arg="-T4.809927e00/6.673539e00/9.318060e-02"  #"-T${z_min}/${z_max}/${cpt_step}"
+gmt makecpt -V $cpt_args -D $range_arg > tmp_$out.cpt
 
 
 # plot misfit values
@@ -92,7 +92,7 @@ custom_psconvert $ps $out $filetype
 #echo "  finished writing: $out"
 
 
-rm tmp*$out*
-rm $ps
+#rm tmp*$out*
+#rm $ps
 
 
