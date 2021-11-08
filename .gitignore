@@ -21,3 +21,11 @@ docs/_build
 docs/library/generated
 scripts/
 
+env
+data/examples/20090407201255351/
+data/observed/
+data/tests/benchmark_cap/20090407201255351/
+data/tests/benchmark_cap/greens/
+dbgraybeal/
+jbraunmiller/
+thompsong/
