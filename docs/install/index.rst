@@ -22,7 +22,9 @@ Graphics dependencies
 
 .. warning::
 
-   To avoid graphics problems, we recommend installing GMT 6.1. 
+   To avoid graphics problems, we recommend installing PyGMT.
 
-MTUQ uses `GMT <https://www.soest.hawaii.edu/gmt>`_ graphics utilities if present on the system path.  Otherwise, MTUQ falls back to ObsPy, which does not always attempt to plot full moment tensors correctly (see this `issue <https://github.com/obspy/obspy/issues/2388>`_).  For installing GMT under `conda` or `virtualenv`, see above links.
+MTUQ uses `PyGMT <https://www.pygmt.org/latest/>`_ if present.  PyGMT is not installed by default, but requires an extra `conda install pygmt`.
+
+If PyGMT is not present, MTUQ may fall back to GMT or ObsPy.  We note that some versions of GMT and ObsPy do not plot full moment tensors correctly (`see here <https://github.com/obspy/obspy/issues/2388>`_).
 

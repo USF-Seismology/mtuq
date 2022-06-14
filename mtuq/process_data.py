@@ -11,7 +11,7 @@ from os.path import basename, exists
 from mtuq.util import AttribDict, warn
 from mtuq.util.cap import WeightParser, taper
 from mtuq.util.signal import cut, get_arrival, m_to_deg
- 
+
 
 class ProcessData(object):
     """ An attempt at a one-size-fits-all data processing class
@@ -23,9 +23,9 @@ class ProcessData(object):
 
     .. code::
 
-        function = ProcessData(**parameters) 
+        function = ProcessData(**parameters)
 
-    Second, an ObsPy stream is given as input to the data processing function 
+    Second, an ObsPy stream is given as input to the data processing function
     and a processed stream returned as output:
 
     .. code::
@@ -63,8 +63,8 @@ class ProcessData(object):
     ``pick_type`` (`str`)
 
     - ``'taup'``
-      calculates P, S arrival times from Tau-P model 
-      (uses `obspy.taup.TaupModel.get_arrival_times`)
+      calculates P, S arrival times from Tau-P model
+      (uses `obspy.taup.TauPyModel.get_arrival_times`)
 
     - ``'FK_metadata'``
       reads P, S arrival times from FK metadata
@@ -119,7 +119,8 @@ class ProcessData(object):
     amount by which Green's functions will be padded relative to data
 
     ``taup_model`` (`str`)
-    Name of ObsPy TauP model, required for `pick_type=taup`
+    Name of built-in ObsPy TauP model or path to custom ObsPy TauP model,
+    required for `pick_type=taup`
 
     ``FK_database`` (`str`)
     Path to FK database, required for `pick_type=FK_metadata`
@@ -272,6 +273,7 @@ class ProcessData(object):
             assert self.taup_model is not None
             self._taup = taup.TauPyModel(self.taup_model)
 
+
         elif self.pick_type == 'FK_metadata':
             assert self.FK_database is not None
             assert exists(self.FK_database)
@@ -333,7 +335,7 @@ class ProcessData(object):
 
 
     def __call__(self, traces, station=None, origin=None, overwrite=False):
-        ''' 
+        '''
         Carries out data processing operations on obspy streams
         MTUQ GreensTensors
 
@@ -363,12 +365,16 @@ class ProcessData(object):
             station.latitude,
             station.longitude)
 
+        if not 'az' in station.sac:
+            print('adding azimuth in ', id)
+            station.sac['az'] = azimuth
+
         # collect time sampling information
         nt, dt = traces[0].stats.npts, traces[0].stats.delta
 
         # Tags can be added through dataset.add_tag to keep track of custom
         # metadata or support other customized uses. Here we use tags to
-        # distinguish data from Green's functions and displacement time series 
+        # distinguish data from Green's functions and displacement time series
         # from velcoity time series
         if not hasattr(traces, 'tags'):
             raise Exception('Missing tags attribute')
@@ -470,12 +476,12 @@ class ProcessData(object):
 
             if self.pick_type=='taup':
                 with warnings.catch_warnings():
-                    # supress obspy warning that gets raised even when taup is 
+                    # supress obspy warning that gets raised even when taup is
                     # used correctly (someone should submit an obspy fix)
                     warnings.filterwarnings('ignore')
                     arrivals = self._taup.get_travel_times(
-                        origin.depth_in_m/1000., 
-                        m_to_deg(distance_in_m), 
+                        origin.depth_in_m/1000.,
+                        m_to_deg(distance_in_m),
                         phase_list=['p', 's', 'P', 'S'])
                 try:
                     picks['P'] = get_arrival(arrivals, 'p')
@@ -534,18 +540,16 @@ class ProcessData(object):
 
             #
             # part 4b: apply statics
-            # 
+            #
 
-            # STATIC CONVETION:  A positive static time shift means synthetics
-            # are arriving too early and need to be shifted in the positive 
-            # direction to match the observed data. 
+            # STATIC CONVENTION:  A positive static time shift means synthetics
+            # are arriving too early and need to be shifted in the positive
+            # direction to match the observed data.
 
             if self.apply_statics:
                 try:
-                    # _components is a custom metadata attribute added by
-                    # mtuq.io.clients. this workaround is needed because of
-                    # certain channel/component conventions are not 
-                    # supported by ObsPy
+                    # _component is a custom metadata attribute added by
+                    # mtuq.io.clients
 
                     # Even though obspy.read doesn't return a stats.component
                     # attribute, it appears "component" is still reserved by
@@ -554,7 +558,7 @@ class ProcessData(object):
 
                 except:
                     # This way of getting the component from the channel is
-                    # actually what is hardwired into ObsPy, and is implemented 
+                    # actually what is hardwired into ObsPy, and is implemented
                     # here as a fallback
                     component = trace.stats.channel[-1].upper()
 
@@ -573,7 +577,7 @@ class ProcessData(object):
 
             #
             # part 4c: apply padding
-            # 
+            #
 
             # using a longer window for Green's functions than for data allows for
             # more accurate time-shift corrections
@@ -598,4 +602,3 @@ class ProcessData(object):
 
 
         return traces
-

@@ -2,6 +2,7 @@
 from copy import deepcopy
 from functools import reduce
 from math import ceil, floor
+from matplotlib import colors
 from obspy import UTCDateTime
 from os.path import abspath, join
 from retry import retry
@@ -18,20 +19,72 @@ import warnings
 import zipfile
 
 
+# Python2/3 compatibility
 try:
     from urllib import URLopener
 except ImportError:
     from urllib.request import URLopener
 
+from six import string_types
+
 
 class AttribDict(obspy.core.util.attribdict.AttribDict):
+    """ For storing trace attributes (see `mtuq.graphics.attrs`)
+    """
     pass
 
 
 def asarray(x):
-    """ Numpy array typecast
+    """ NumPy array typecast
     """
     return np.array(x, dtype=np.float64, ndmin=1, copy=False)
+
+
+def gather2(comm, array):
+    """ Gathers 2-D NumPy arrays and combines along first dimension
+
+    For very large numbers of elements, provides improved performance over 
+    `gather` by using the lower-level function `Gatherv`
+    """
+    from mpi4py import MPI
+
+
+    if not isinstance(array, np.ndarray):
+        raise NotImplementedError
+
+    if array.dtype=="float32":
+        mpi_type = MPI.FLOAT
+
+    elif array.dtype=="float64":
+        mpi_type = MPI.DOUBLE
+
+    else:
+        raise NotImplementedError
+
+    if array.ndim!=2:
+        raise NotImplementedError
+
+    # TODO - how to enforce same ncol for all processes?
+    nrow, ncol = array.shape
+
+
+    # start by defining the memory block sizes and create receiving buffer
+    sendcounts = np.array(comm.gather(np.size(array), root=0))
+
+    if comm.rank == 0:
+        recvbuf = np.empty(sum(sendcounts), dtype=array.dtype)
+    else:
+        recvbuf = None
+
+    comm.Gatherv(
+        sendbuf=(array, mpi_type),
+        recvbuf=(recvbuf, sendcounts, None, mpi_type),
+        root=0)
+
+    if comm.rank == 0:
+        return recvbuf.reshape(int(len(recvbuf)/ncol),ncol)
+    else:
+        return
 
 
 def is_mpi_env():
@@ -51,14 +104,21 @@ def is_mpi_env():
         return False
 
 
-def iterable(arg):
+def iterable(obj):
     """ Simple list typecast
     """
-    from mtuq.grid import Grid, UnstructuredGrid
-    if not isinstance(arg, (list, tuple, Grid, UnstructuredGrid)):
-        return [arg]
-    else:
-        return arg
+    if isinstance(obj, string_types):
+        return [obj]
+
+    if issubclass(type(obj), dict) or issubclass(type(obj), AttribDict):
+        return [obj]
+
+    try:
+        (item for item in obj)
+    except TypeError:
+        obj = [obj]
+    finally:
+        return obj
 
 
 def merge_dicts(*dicts):
@@ -174,6 +234,12 @@ def timer(func):
     return timed_func
 
 
+def to_rgb(color):
+    """ Converts matplotlib color to red-green-blue tuple
+    """
+    return 255*asarray(colors.to_rgba(color)[:3])
+
+
 def unzip(filename):
     parts = filename.split('.')
     if parts[-1]=='zip':
@@ -278,9 +344,9 @@ def dataarray_idxmin(da):
     da = da.where(da==da.min(), drop=True).squeeze()
     if da.size > 1:
         warn("No unique global minimum\n")
-        return da[0].coords
-    else:
-        return da.coords
+        while da.size > 1:
+            da = da[0]
+    return da.coords
 
 
 def dataarray_idxmax(da):
@@ -291,7 +357,13 @@ def dataarray_idxmax(da):
     da = da.where(da==da.max(), drop=True).squeeze()
     if da.size > 1:
         warn("No unique global maximum\n")
-        return da[0].coords
-    else:
-        return da.coords
+        while da.size > 1:
+            da = da[0]
+    return da.coords
+
+
+def defaults(kwargs, defaults):
+    for key in defaults:
+        if key not in kwargs:
+           kwargs[key] = defaults[key]
 

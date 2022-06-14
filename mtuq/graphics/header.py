@@ -9,7 +9,7 @@ import os
 from matplotlib import pyplot
 from matplotlib.font_manager import FontProperties
 from mtuq.event import MomentTensor
-from mtuq.graphics.beachball import gray, plot_beachball
+from mtuq.graphics.beachball import plot_beachball
 from mtuq.util.math import to_delta_gamma
 
 
@@ -165,7 +165,7 @@ class MomentTensorHeader(Base):
         #yp = 0.45*height
         #ax.add_collection(
         #    beach(self.mt, xy=(xp, yp), width=diameter,
-        #    linewidth=0.5, facecolor=gray))
+        #    linewidth=0.5, facecolor='gray'))
 
 
         #
@@ -179,7 +179,7 @@ class MomentTensorHeader(Base):
         xp = offset
         yp = 0.075*height
 
-        plot_beachball('tmp.png', self.mt)
+        plot_beachball('tmp.png', self.mt, None, None)
         img = pyplot.imread('tmp.png')
 
         try:
@@ -214,7 +214,7 @@ class MomentTensorHeader(Base):
         px += 0.00
         py -= 0.30
 
-        line = u'model: %s   solver: %s   misfit (%s): %.1e' % \
+        line = u'model: %s   solver: %s   misfit (%s): %.3e' % \
                 (self.model, self.solver, self.norm, self.best_misfit)
         _write_text(line, px, py, ax, fontsize=14)
 
@@ -241,7 +241,7 @@ class MomentTensorHeader(Base):
         py -= 0.30
 
         line = _focal_mechanism(self.lune_dict)
-        line +=  ',   '+_delta_gamma(self.lune_dict)
+        line +=  ',   '+_gamma_delta(self.lune_dict)
         _write_text(line, px, py, ax, fontsize=14)
 
 
@@ -335,7 +335,7 @@ class ForceHeader(Base):
         px += 0.00
         py -= 0.30
 
-        line = u'model: %s   solver: %s   misfit (%s): %.1e' % \
+        line = u'model: %s   solver: %s   misfit (%s): %.3e' % \
                 (self.model, self.solver, self.norm, self.best_misfit)
         _write_text(line, px, py, ax, fontsize=14)
 
@@ -394,18 +394,18 @@ def _focal_mechanism(lune_dict):
 
     slip = lune_dict['sigma']
 
-    return ("strike  dip  slip:  %d  %d  %d" %
+    return ("strike  dip  slip:  %.f  %.f  %.f" %
         (strike, dip, slip))
 
 
-def _delta_gamma(lune_dict):
+def _gamma_delta(lune_dict):
     try:
         v, w = lune_dict['v'], lune_dict['w']
         delta, gamma = to_delta_gamma(v, w)
     except:
         delta, gamma = lune_dict['delta'], lune_dict['gamma']
 
-    return 'lune coords %s  %s:  %d  %d' % (u'\u03B3', u'\u03B4', delta, gamma)
+    return 'lune coords %s  %s:  %.f  %.f' % (u'\u03B3', u'\u03B4', gamma, delta)
 
 
 
@@ -416,7 +416,7 @@ def _phi_theta(force_dict):
         phi, h = force_dict['phi'], force_dict['h']
         theta = np.degrees(np.arccos(h))
 
-    return '%s  %s:  %d  %d' % (u'\u03C6', u'\u03B8', phi, theta)
+    return '%s  %s:  %.f  %.f' % (u'\u03C6', u'\u03B8', phi, theta)
 
 
 def _write_text(text, x, y, ax, fontsize=12, **kwargs):

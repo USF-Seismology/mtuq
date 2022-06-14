@@ -22,8 +22,8 @@ if __name__=='__main__':
     # USAGE
     #   mpirun -n <NPROC> python GridSearch.DoubleCouple+Magnitude+Depth.py
     #
-    # This is the most complicated example. For a much simpler one, see
-    # SerialGridSearch.DoubleCouple.py
+    # For simpler examples, see SerialGridSearch.DoubleCouple.py or
+    # GridSearch.FullMomentTensor.py
     #   
 
 
@@ -94,7 +94,7 @@ if __name__=='__main__':
 
 
     #
-    # We will search over a range of depths about the catalog origin
+    # We will search over a range of locations about the catalog origin
     #
 
 
@@ -127,7 +127,7 @@ if __name__=='__main__':
          4.6, 4.7, 4.8]) 
 
     grid = DoubleCoupleGridRegular(
-        npts_per_axis=30,
+        npts_per_axis=20,
         magnitudes=magnitudes)
 
     wavelet = Trapezoid(
@@ -200,96 +200,64 @@ if __name__=='__main__':
         data_sw, greens_sw, misfit_sw, origins, grid)
 
 
-    #
-    # Generate figures and save results
-    #
 
     if comm.rank==0:
 
         results = results_bw + results_sw
 
-        # origin corresponding to minimum misfit
-        best_origin = origins[results.idxmin('origin')]
-        origin_dict = best_origin.as_dict()
+        origin_idx = results.origin_idxmin()
+        best_origin = origins[origin_idx]
 
-        # source corresponding to minimum misfit
-        idx = results.idxmin('source')
-        best_source = grid.get(idx)
-        lune_dict = grid.get_dict(idx)
-        mt_dict = grid.get(idx).as_dict()
+        source_idx = results.source_idxmin()
+        best_mt = grid.get(source_idx)
 
-        merged_dict = merge_dicts(lune_dict, mt_dict, best_origin)
+        lune_dict = grid.get_dict(source_idx)
+        mt_dict = best_mt.as_dict()
 
 
-        # only generate components present in the data
-        components_bw = data_bw.get_components()
-        components_sw = data_sw.get_components()
-
-        greens_bw = greens_bw.select(best_origin)
-        greens_sw = greens_sw.select(best_origin)
-
-        # synthetics corresponding to minimum misfit
-        synthetics_bw = greens_bw.get_synthetics(
-            best_source, components_bw, mode='map')
-
-        synthetics_sw = greens_sw.get_synthetics(
-            best_source, components_sw, mode='map')
-
-
-        # time shifts and other attributes corresponding to minimum misfit
-        list_bw = misfit_bw.collect_attributes(
-            data_bw, greens_bw, best_source)
-
-        list_sw = misfit_sw.collect_attributes(
-            data_sw, greens_sw, best_source)
-
-        dict_bw = {station.id: list_bw[_i] 
-            for _i,station in enumerate(stations)}
-
-        dict_sw = {station.id: list_sw[_i] 
-            for _i,station in enumerate(stations)}
-
+        #
+        # Generate figures and save results
+        #
 
         print('Generating figures...\n')
 
-        plot_data_greens2(event_id+'DC+_waveforms.png',
+        plot_data_greens2(event_id+'DC+Z_waveforms.png',
             data_bw, data_sw, greens_bw, greens_sw, process_bw, process_sw, 
-            misfit_bw, misfit_sw, stations, best_origin, best_source, lune_dict)
+            misfit_bw, misfit_sw, stations, best_origin, best_mt, lune_dict)
 
-        plot_misfit_depth(event_id+'DC+_misfit_depth.png',
-            results, origins, grid)
+
+        plot_misfit_depth(event_id+'DC+Z_misfit_depth.png', results, origins,
+            title=event_id)
+
+
+        plot_misfit_depth(event_id+'DC+Z_misfit_depth_tradeoffs.png', results, origins,
+            show_tradeoffs=True, show_magnitudes=True, title=event_id)
 
 
         print('Saving results...\n')
 
+        # collect information about best-fitting source
+        merged_dict = merge_dicts(
+            mt_dict,
+            lune_dict,
+            {'M0': best_mt.moment()},
+            {'Mw': best_mt.magnitude()},
+            best_origin,
+            )
+
         # save best-fitting source
-        save_json(event_id+'DC+_solution.json', merged_dict)
+        save_json(event_id+'DC+Z_solution.json', merged_dict)
 
 
         # save origins
         origins_dict = {_i: origin 
             for _i,origin in enumerate(origins)}
 
-        save_json(event_id+'DC+_origins.json', origins_dict)
+        save_json(event_id+'DC+Z_origins.json', origins_dict)
 
 
-        # save time shifts and other attributes
-        os.makedirs(event_id+'DC+_attrs', exist_ok=True)
-
-        save_json(event_id+'DC+_attrs/bw.json', dict_bw)
-        save_json(event_id+'DC+_attrs/sw.json', dict_sw)
-
-
-        # save processed waveforms as binary files
-        os.makedirs(event_id+'DC+_waveforms', exist_ok=True)
-
-        data_bw.write(event_id+'DC+_waveforms/dat_bw.p')
-        data_sw.write(event_id+'DC+_waveforms/dat_sw.p')
-
-        synthetics_bw.write(event_id+'DC+_waveforms/syn_bw.p')
-        synthetics_sw.write(event_id+'DC+_waveforms/syn_sw.p')
-
-        results.save(event_id+'DC+_misfit.nc')
+        # save misfit surface
+        results.save(event_id+'DC+Z_misfit.nc')
 
 
         print('\nFinished\n')

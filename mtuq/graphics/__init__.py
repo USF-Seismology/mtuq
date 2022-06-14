@@ -1,16 +1,14 @@
 
 
 from mtuq.graphics.attrs import\
-    plot_time_shifts, plot_amplitude_ratios
+    plot_time_shifts, plot_amplitude_ratios, plot_log_amplitude_ratios,\
+    _plot_attrs
 
 from mtuq.graphics.beachball import\
-    plot_beachball, misfit_vs_depth
+    plot_beachball
 
 from mtuq.graphics.beachball_pygmt import\
     beachball_pygmt
-
-from mtuq.graphics.summary import\
-    plot_summary1, plot_summary2
 
 from mtuq.graphics.uq.lune import\
     plot_misfit_lune, plot_likelihood_lune, plot_marginal_lune,\
@@ -22,17 +20,17 @@ from mtuq.graphics.uq.vw import\
     _plot_vw, _product_vw
 
 from mtuq.graphics.uq.double_couple import\
-    plot_misfit_dc, plot_likelihood_dc, plot_marginal_dc
+    plot_misfit_dc, plot_likelihood_dc, plot_marginal_dc, _plot_dc
 
 from mtuq.graphics.uq.force import\
     plot_misfit_force, plot_likelihood_force, plot_marginal_force,\
     plot_magnitude_tradeoffs_force, _plot_force
 
-from mtuq.graphics.uq.origin_depth import\
-    plot_misfit_depth, plot_likelihood_depth, plot_marginal_depth
+from mtuq.graphics.uq.depth import\
+    plot_misfit_depth, plot_likelihood_depth, plot_marginal_depth, _plot_depth
 
-from mtuq.graphics.uq.origin_xy import\
-    plot_misfit_xy, plot_mt_xy
+from mtuq.graphics.uq.hypocenter import\
+    plot_misfit_latlon, plot_likelihood_latlon, plot_marginal_latlon, _plot_latlon
 
 from mtuq.graphics.waveforms import\
     plot_waveforms1, plot_waveforms2, plot_data_greens1, plot_data_greens2

@@ -50,6 +50,8 @@ ENTRY_POINTS = {
         'FK_SAC = mtuq.io.clients.FK_SAC:Client',
         'SPECFEM3D = mtuq.io.clients.SPECFEM3D_SAC:Client',
         'SPECFEM3D_SAC = mtuq.io.clients.SPECFEM3D_SAC:Client',
+        'SPECFEM3D_SGT = mtuq.io.clients.SPECFEM3D_SGT:Client',
+        'SPECFEM3D_PKL = mtuq.io.clients.SPECFEM3D_SGT:Client',
         'SYNGINE = mtuq.io.clients.syngine:Client',
         ]
     }
@@ -74,7 +76,7 @@ setup(
         "Operating System :: POSIX",
         "Operating System :: Microsoft :: Windows",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: Implementation :: CPython",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Physics",
@@ -84,11 +86,15 @@ setup(
     ],
     entry_points=ENTRY_POINTS,
     python_requires='>=3.7.0',
+    # NOTE
+    # instaseis Fortran extension modules sometimes fail to compile via pip
+    # (consider using a conda based installation instead)
     install_requires=[
-        "numpy", "scipy", "obspy",
-        "pandas", "xarray", 
-        "retry", 
-        "flake8>=3.0", "pytest", "nose",
+        "numpy", "scipy",
+        "pandas", "xarray", "netCDF4", "h5py", "tables",
+        "obspy", "seisgen",
+        "retry", "flake8>=3.0", "pytest", "nose",
+        # "instaseis"
     ],
     ext_modules = [
         Extension(

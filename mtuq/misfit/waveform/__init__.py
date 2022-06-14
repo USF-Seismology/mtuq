@@ -62,6 +62,9 @@ class Misfit(object):
 
     ``time_shift_max`` (`float`): maximum allowable time shift (s)
 
+    ``optimization_level`` (`int`): optimization level 
+    (see further details below)
+
 
     .. note:: 
 
@@ -89,7 +92,7 @@ class Misfit(object):
 
     - ``level1`` is an optimized pure Python implementation which provides 
       significant computational savings for `len(sources)` > 100. This
-      version is the closest to `ZhuHelmberger1996`'s original C software.
+      version is the closest to `Zhu1996`'s original C software.
 
     - ``level2`` is an optimized Python/C implementation, in which a Python 
       wrapper is used to combine ObsPy traces into multidimensional arrays.
@@ -101,10 +104,10 @@ class Misfit(object):
 
     .. note:: 
 
-      During installation, C extension modules are aumotically compiled by
+      During installation, C extension modules are automatically compiled by
       `build_ext.sh` using compiler flags given in `setup.py`.  For performance
       tuning or compiler troubleshooting, users may wish to modify the
-      `get_compier_args` function in `setup.py`.
+      `get_compiler_args` function in `setup.py`.
 
     """
 
@@ -113,6 +116,7 @@ class Misfit(object):
         time_shift_groups=['ZRT'],
         time_shift_min=0.,
         time_shift_max=0.,
+        optimization_level=2,
         ):
         """ Function handle constructor
         """
@@ -140,29 +144,45 @@ class Misfit(object):
                 assert component in ['Z','R','T'],\
                     ValueError("Bad input argument")
 
+        assert optimization_level in [0,1,2]
+
         self.norm = norm
         self.time_shift_min = time_shift_min
         self.time_shift_max = time_shift_max
         self.time_shift_groups = time_shift_groups
+        self.optimization_level = optimization_level
 
 
     def __call__(self, data, greens, sources, progress_handle=Null(), 
-        set_attributes=False, optimization_level=2):
+        set_attributes=False, optimization_level=None):
         """ Evaluates misfit on given data
         """
-        # Normally misfit is evaluated over a grid of sources; `iterable`
+        if optimization_level is None:
+            optimization_level = self.optimization_level
+
+        assert optimization_level in [0,1,2]
+
+        # normally misfit is evaluated over a grid of sources; `iterable`
         # makes things work if just a single source is given
         sources = iterable(sources)
 
-        # Checks that dataset is nonempty
+        # checks that dataset is nonempty
         if isempty(data):
             warn("Empty data set. No misfit evaluations will be carried out")
             return np.zeros((len(sources), 1))
 
-        # Checks that optional Green's function padding is consistent with time 
+        # checks that the container legnths are consistent
+        if len(data) != len(greens):
+            raise Exception("Inconsistent container lengths\n\n  "+
+                "len(data): %d\n  len(greens): %d\n" %
+                (len(data), len(greens)))
+ 
+
+        # checks that optional Green's function padding is consistent with time 
         # shift bounds
         check_padding(greens, self.time_shift_min, self.time_shift_max)
 
+ 
         if optimization_level==0 or set_attributes:
             return level0.misfit(
                 data, greens, sources, self.norm, self.time_shift_groups, 
@@ -181,27 +201,28 @@ class Misfit(object):
 
 
     def collect_attributes(self, data, greens, source):
-        """ Collects time shifts and other attributes assigned to traces
+        """ Collects misfit, time shifts and other attributes corresponding to 
+        each trace
         """
-        # Checks that dataset is nonempty
+        # checks that dataset is nonempty
         if isempty(data):
             warn("Empty data set. No attributes will be returned")
             return []
 
-        # Checks that optional Green's function padding is consistent with time 
+        # checks that optional Green's function padding is consistent with time 
         # shift bounds
         check_padding(greens, self.time_shift_min, self.time_shift_max)
 
         synthetics = greens.get_synthetics(
             source, components=data.get_components(), mode='map', inplace=True)
 
-        # Attaches attributes to synthetics
+        # attaches attributes to synthetics
         _ = level0.misfit(
             data, greens, iterable(source), self.norm, self.time_shift_groups,
             self.time_shift_min, self.time_shift_max, msg_handle=Null(),
             set_attributes=True)
 
-        # Collects attributes
+        # collects attributes
         attrs = []
         for stream in synthetics:
             attrs += [{}]
@@ -213,4 +234,29 @@ class Misfit(object):
                     attrs[-1][component] = trace.attrs
 
         return deepcopy(attrs)
+
+
+    def collect_synthetics(self, data, greens, source):
+        """ Collects synthetics with misfit, time shifts and other attributes attached
+        """
+        # checks that dataset is nonempty
+        if isempty(data):
+            warn("Empty data set. No attributes will be returned")
+            return []
+
+        # checks that optional Green's function padding is consistent with time 
+        # shift bounds
+        check_padding(greens, self.time_shift_min, self.time_shift_max)
+
+        synthetics = greens.get_synthetics(
+            source, components=data.get_components(), mode='map', inplace=True)
+
+        # attaches attributes to synthetics
+        _ = level0.misfit(
+            data, greens, iterable(source), self.norm, self.time_shift_groups,
+            self.time_shift_min, self.time_shift_max, msg_handle=Null(),
+            set_attributes=True)
+
+        return deepcopy(synthetics)
+
 

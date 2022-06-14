@@ -85,7 +85,7 @@ def plot_waveforms1(filename,
 
         for dat in stream_dat:
             component = dat.stats.channel[-1].upper()
-            weight = getattr(dat.attrs, 'weight', 1.)
+            weight = _getattr(dat, 'weight', 1.)
 
             if not weight:
                 continue
@@ -175,7 +175,7 @@ def plot_waveforms2(filename,
 
         for dat in stream_dat:
             component = dat.stats.channel[-1].upper()
-            weight = getattr(dat.attrs, 'weight', 1.)
+            weight = _getattr(dat, 'weight', 1.)
 
             if not weight:
                 continue
@@ -200,7 +200,7 @@ def plot_waveforms2(filename,
 
         for dat in stream_dat:
             component = dat.stats.channel[-1].upper()
-            weight = getattr(dat.attrs, 'weight', 1.)
+            weight = _getattr(dat, 'weight', 1.)
 
             if not weight:
                 continue
@@ -238,13 +238,11 @@ def plot_data_greens1(filename,
     Different input arguments, same result as plot_waveforms1
     """
 
-    # prepare synthetic waveforms
-    components = data.get_components()
+    # collect synthetic waveforms with misfit attributes attached
+    synthetics = misfit.collect_synthetics(data, greens.select(origin), source)
 
-    synthetics = greens.select(origin).get_synthetics(
-        source, components, mode='map', inplace=True)
-
-    total_misfit = misfit(data, greens, source, set_attributes=True)
+    # calculate total misfit for display in figure header
+    total_misfit = misfit(data, greens.select(origin), source, optimization_level=0)
 
     # prepare figure header
     if 'header' in kwargs:
@@ -279,23 +277,25 @@ def plot_data_greens2(filename,
         **kwargs):
 
     """ Creates data/synthetics comparison figure with 5 columns 
-   (Pn Z, Pn R, Rayleigh Z, Rayleigh R, Love T)
+    (Pn Z, Pn R, Rayleigh Z, Rayleigh R, Love T)
 
     Different input arguments, same result as plot_waveforms2
     """
 
-    # prepare synthetic waveforms
-    components_bw = data_bw.get_components()
-    components_sw = data_sw.get_components()
+    # collect synthetic waveforms with misfit attributes attached
+    synthetics_bw = misfit_bw.collect_synthetics(
+        data_bw, greens_bw.select(origin), source)
 
-    synthetics_bw = greens_bw.select(origin).get_synthetics(
-        source, components_bw, mode='map', inplace=True)
+    synthetics_sw = misfit_sw.collect_synthetics(
+        data_sw, greens_sw.select(origin), source)
 
-    synthetics_sw = greens_sw.select(origin).get_synthetics(
-        source, components_sw, mode='map', inplace=True)
 
-    total_misfit_bw = misfit_bw(data_bw, greens_bw, source, set_attributes=True)
-    total_misfit_sw = misfit_sw(data_sw, greens_sw, source, set_attributes=True)
+    # calculate total misfit for display in figure header
+    total_misfit_bw = misfit_bw(
+        data_bw, greens_bw.select(origin), source, optimization_level=0)
+
+    total_misfit_sw = misfit_sw(
+        data_sw, greens_sw.select(origin), source, optimization_level=0) 
 
 
     # prepare figure header
@@ -356,15 +356,16 @@ def _initialize(nrows=None, ncolumns=None, column_width_ratios=None,
 
     _hide_axes(axes)
 
-    if not header:
-        return fig, axes
-
-    else:
+    if header:
         header.write(
             header_height, width,
             margin_left, margin_top)
 
-        return fig, axes
+    # single station plotting workaround
+    if nrows==1:
+        axes = [axes]
+
+    return fig, axes
 
 
 def _plot_ZRT(axes, ic, dat, syn, component, 
@@ -414,17 +415,32 @@ def _plot_ZR(axes, ic, dat, syn, component,
 
     _plot(axis, dat, syn)
 
-    # normalize amplitudes
+    # THIS PART WAS COMMENTED OUT BEFORE THE WORKSHOP FOR A QUICK WORKAROUND
+    # WE NEED A PROPER WAY OF DEALING WITH CUSTOM AMPLITUDE BY ADDING AN OPTION
+    # # normalize amplitudes
+    # if normalize=='trace_amplitude':
+    #     max_trace = _max(dat, syn)
+    #     ylim = [-3*max_trace, +3*max_trace]
+    #     axis.set_ylim(*ylim)
+    # elif normalize=='station_amplitude':
+    #     max_stream = _max(stream_dat, stream_syn)
+    #     ylim = [-3*max_stream, +3*max_stream]
+    #     axis.set_ylim(*ylim)
+    # elif normalize=='maximum_amplitude':
+    #     ylim = [-2*max_amplitude, +2*max_amplitude]
+    #     axis.set_ylim(*ylim)
+
+    # normalize amplitude - using same scaling parameters as surface waves
     if normalize=='trace_amplitude':
         max_trace = _max(dat, syn)
-        ylim = [-3*max_trace, +3*max_trace]
+        ylim = [-1.5*max_trace, +1.5*max_trace]
         axis.set_ylim(*ylim)
     elif normalize=='station_amplitude':
         max_stream = _max(stream_dat, stream_syn)
-        ylim = [-3*max_stream, +3*max_stream]
+        ylim = [-1.5*max_stream, +1.5*max_stream]
         axis.set_ylim(*ylim)
     elif normalize=='maximum_amplitude':
-        ylim = [-2*max_amplitude, +2*max_amplitude]
+        ylim = [-0.75*max_amplitude, +0.75*max_amplitude]
         axis.set_ylim(*ylim)
 
     if trace_labels:
@@ -436,8 +452,8 @@ def _plot(axis, dat, syn, label=None):
     """
     t1,t2,nt,dt = _time_stats(dat)
 
-    start = getattr(syn.attrs, 'start', 0)
-    stop = getattr(syn.attrs, 'stop', len(syn.data))
+    start = _getattr(syn, 'start', 0)
+    stop = _getattr(syn, 'stop', len(syn.data))
 
     t = np.linspace(0,t2-t1,nt,dt)
     d = dat.data
@@ -536,8 +552,8 @@ def _add_trace_labels(axis, dat, syn, total_misfit=1.):
 
     # display cross-correlation time shift
     time_shift = 0.
-    time_shift += getattr(syn.attrs, 'time_shift', np.nan)
-    time_shift += getattr(dat.attrs, 'static_time_shift', 0)
+    time_shift += _getattr(syn, 'time_shift', np.nan)
+    time_shift += _getattr(dat, 'static_time_shift', 0)
     axis.text(0.,(1/4.)*ymin, '%.2f' %time_shift, fontsize=11)
 
     # display maximum cross-correlation coefficient
@@ -552,7 +568,7 @@ def _add_trace_labels(axis, dat, syn, total_misfit=1.):
         axis.text(0.,(2/4.)*ymin, '%.2f' %max_cc, fontsize=11)
 
     # display percent of total misfit
-    misfit = getattr(syn.attrs, 'misfit', np.nan)
+    misfit = _getattr(syn, 'misfit', np.nan)
     misfit /= total_misfit
     if misfit >= 0.1:
         axis.text(0.,(3/4.)*ymin, '%.1f' %(100.*misfit), fontsize=11)
@@ -590,6 +606,18 @@ def _isempty(dataset):
         return True
     else:
         return bool(_count([dataset])==0)
+
+
+def _getattr(trace, name, *args):
+    if len(args)==1:
+        if not hasattr(trace, 'attrs'):
+            return args[0]
+        else:
+            return getattr(trace.attrs, name, args[0])
+    elif len(args)==0:
+        return getattr(trace.attrs, name)
+    else:
+        raise TypeError("Wrong number of arguments")
 
 
 def _max(dat, syn):

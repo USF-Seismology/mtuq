@@ -35,6 +35,13 @@ class Client(ClientBase):
 
         greens_tensors = db.get_greens_tensors(stations, origin)
 
+
+    .. note::
+
+        For instructions on creating AxiSEM NetCDF databases, see
+        `AxiSEM user manual - Output wavefields in netcdf format needed for Instaseis
+        <https://raw.githubusercontent.com/geodynamics/axisem/master/MANUAL/manual_axisem1.3.pdf>`_
+
     """
 
     def __init__(self, path_or_url='', model='', kernelwidth=12,

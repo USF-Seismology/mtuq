@@ -24,10 +24,29 @@ autogen
    mtuq.graphics.plot_marginal_vw
    mtuq.graphics.plot_misfit_vw
    mtuq.graphics._plot_vw
+   mtuq.graphics.plot_likelihood_dc
+   mtuq.graphics.plot_marginal_dc
+   mtuq.graphics.plot_misfit_dc
+   mtuq.graphics._plot_dc
    mtuq.graphics.plot_likelihood_force
    mtuq.graphics.plot_marginal_force
    mtuq.graphics.plot_misfit_force
    mtuq.graphics._plot_force
+   mtuq.graphics.plot_likelihood_depth
+   mtuq.graphics.plot_marginal_depth
+   mtuq.graphics.plot_misfit_depth
+   mtuq.graphics._plot_depth
+   mtuq.graphics.plot_likelihood_latlon
+   mtuq.graphics.plot_marginal_latlon
+   mtuq.graphics.plot_misfit_latlon
+   mtuq.graphics._plot_latlon
+   mtuq.graphics.plot_time_shifts
+   mtuq.graphics.plot_amplitude_ratios
+   mtuq.graphics.plot_log_amplitude_ratios
+   mtuq.graphics._plot_attrs
+   mtuq.graphics.attrs._default_backend
+   mtuq.grid.DeviatoricGridRandom
+   mtuq.grid.DeviatoricGridSemiregular
    mtuq.grid.DoubleCoupleGridRandom
    mtuq.grid.DoubleCoupleGridRegular
    mtuq.grid.FullMomentTensorGridRandom
@@ -36,9 +55,12 @@ autogen
    mtuq.grid.ForceGridRegular
    mtuq.grid.Grid
    mtuq.grid.UnstructuredGrid
+   mtuq.grid.moment_tensor._semiregular
    mtuq.grid_search.grid_search
+   mtuq.grid_search.open_ds
    mtuq.grid_search.MTUQDataArray
    mtuq.grid_search.MTUQDataFrame
+   mtuq.util.math.to_rtp
    mtuq.Force
    mtuq.MomentTensor
    mtuq.Wavelet
@@ -49,6 +71,7 @@ autogen
    mtuq.read
    mtuq.io.clients.AxiSEM_NetCDF.Client
    mtuq.io.clients.FK_SAC.Client
+   mtuq.io.clients.SPECFEM3D_SGT.Client
    mtuq.io.clients.syngine.Client
    mtuq.io.readers.SAC.read
    mtuq.misfit.waveform.level0

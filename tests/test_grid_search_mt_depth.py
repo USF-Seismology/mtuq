@@ -87,7 +87,7 @@ if __name__=='__main__':
 
     grid = DoubleCoupleGridRegular(
         npts_per_axis=5,
-        magnitudes=[4.4, 4.5, 4.6])
+        magnitudes=[4.4, 4.5, 4.6, 4.7])
 
     wavelet = Trapezoid(
         magnitude=4.5)
@@ -158,8 +158,8 @@ if __name__=='__main__':
 
     results = results_bw + results_sw
 
-    idx = results.idxmin('source')
-    best_source = grid.get(idx)
+    idx = results.source_idxmin()
+    best_mt = grid.get(idx)
 
     if run_figures:
         filename = event_id+'_misfit_vs_depth.png'
